@@ -31,8 +31,9 @@ jobs:
         shell: bash
         run: |
           python - <<'PY'
-          from datetime import datetime, timezone
+          from datetime import datetime
           from pathlib import Path
+          from zoneinfo import ZoneInfo
 
           path = Path("status.txt")
           content = path.read_text(encoding="utf-8") if path.exists() else ""
@@ -42,7 +43,7 @@ jobs:
                   key, value = line.split("=", 1)
                   values[key.strip()] = value.strip()
 
-          now = datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+          now = datetime.now(ZoneInfo("Europe/Istanbul")).replace(microsecond=0).isoformat()
           values["last_check"] = now
 
           if Path("faizler.txt").exists():
