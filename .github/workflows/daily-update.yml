@@ -30,8 +30,8 @@ jobs:
       - name: Değişiklikleri kontrol et ve durum dosyasını güncelle
         shell: bash
         run: |
-          if git diff --quiet -- faizler.txt; then
-            echo "Faiz verisinde değişiklik yok. Commit yapılmayacak."
+          if git diff --quiet -- faizler.txt esas.txt; then
+            echo "Faiz verilerinde değişiklik yok. Commit yapılmayacak."
             exit 0
           fi
 
@@ -48,13 +48,13 @@ jobs:
       - name: Değişiklikleri commit et ve gönder
         shell: bash
         run: |
-          if git diff --quiet -- faizler.txt status.txt; then
+          if git diff --quiet -- faizler.txt esas.txt status.txt; then
             echo "Commit gerektiren değişiklik yok."
             exit 0
           fi
 
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add faizler.txt status.txt
+          git add faizler.txt esas.txt status.txt
           git commit -m "Günlük faiz verisi güncellemesi"
           git push
