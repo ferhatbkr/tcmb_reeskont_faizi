@@ -12,8 +12,8 @@ def get_faizler():
     rows = []
     for _, row in table.iterrows():
         tarih = pd.to_datetime(str(row["tarih"]).strip(), format="%d.%m.%Y")
-        avans = row["avans"]
-        rows.append(f"{tarih:%Y-%m-%d}|{avans}")
+        reeskont = row["reeskont"]
+        rows.append(f"{tarih:%Y-%m-%d}|{reeskont}")
 
     return "\n".join(rows) + "\n"
 
