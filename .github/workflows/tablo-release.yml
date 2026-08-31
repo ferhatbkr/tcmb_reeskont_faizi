@@ -1,0 +1,86 @@
+name: Faiz Hesaplama Tablosu Release
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'Tablolar/*.xlsx'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Repoyu al
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Değişen sürümleri bul
+        id: versions
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          BEFORE='${{ github.event.before }}'
+          AFTER='${{ github.sha }}'
+
+          if [[ "$BEFORE" == '0000000000000000000000000000000000000000' ]]; then
+            mapfile -t CHANGED < <(find Tablolar -maxdepth 1 -type f -name '*.xlsx' -print)
+          else
+            mapfile -t CHANGED < <(git diff --name-only "$BEFORE" "$AFTER" -- 'Tablolar/*.xlsx')
+          fi
+
+          : > /tmp/versions.txt
+
+          for FILE in "${CHANGED[@]}"; do
+            NAME="$(basename "$FILE")"
+            if [[ "$NAME" =~ v[0-9]+(\.[0-9]+)+ ]]; then
+              printf '%s\n' "${BASH_REMATCH[0]}" >> /tmp/versions.txt
+            fi
+          done
+
+          sort -u /tmp/versions.txt -o /tmp/versions.txt
+
+          if [[ ! -s /tmp/versions.txt ]]; then
+            echo 'Herhangi bir sürüm bulunamadı.'
+            echo 'found=false' >> "$GITHUB_OUTPUT"
+          else
+            echo 'found=true' >> "$GITHUB_OUTPUT"
+            echo 'Bulunan sürümler:'
+            cat /tmp/versions.txt
+          fi
+
+      - name: Release oluştur veya güncelle
+        if: steps.versions.outputs.found == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          while IFS= read -r VERSION; do
+            mapfile -d '' -t FILES < <(find Tablolar -maxdepth 1 -type f -name "*(${VERSION}, *.xlsx" -print0)
+
+            if [[ ${#FILES[@]} -eq 0 ]]; then
+              echo "$VERSION için mevcut XLSX bulunamadı; atlanıyor."
+              continue
+            fi
+
+            echo "$VERSION için ${#FILES[@]} dosya bulundu."
+
+            if gh release view "$VERSION" >/dev/null 2>&1; then
+              echo "$VERSION release'i mevcut; dosyalar güncelleniyor."
+              gh release upload "$VERSION" "${FILES[@]}" --clobber
+            else
+              echo "$VERSION release'i oluşturuluyor."
+              gh release create "$VERSION" "${FILES[@]}" \
+                --target "${{ github.sha }}" \
+                --title "Faiz Hesaplama $VERSION" \
+                --notes "Faiz Hesaplama tablosunun $VERSION sürümü."
+            fi
+          done < /tmp/versions.txt
