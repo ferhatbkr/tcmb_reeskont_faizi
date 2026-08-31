@@ -10,6 +10,14 @@
   <script>
     (async () => {
       const status = document.querySelector('p');
+
+      const normalizeName = (name) => name
+        .toLocaleLowerCase('tr-TR')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/ı/g, 'i')
+        .replace(/[^a-z0-9]/g, '');
+
       try {
         const response = await fetch('https://api.github.com/repos/ferhatbkr/tcmb_reeskont_faizi/releases/latest', {
           headers: { 'Accept': 'application/vnd.github+json' }
@@ -17,10 +25,10 @@
         if (!response.ok) throw new Error(`GitHub API: ${response.status}`);
 
         const release = await response.json();
-        const asset = release.assets.find(a =>
-          a.name.toLocaleLowerCase('tr-TR').includes('çevrimdışı') &&
-          a.name.toLocaleLowerCase('tr-TR').endsWith('.xlsx')
-        );
+        const asset = release.assets.find(a => {
+          const normalized = normalizeName(a.name);
+          return normalized.includes('cevrimdisi') && normalized.endsWith('xlsx');
+        });
 
         if (!asset) throw new Error('Çevrimdışı XLSX dosyası bulunamadı.');
         window.location.replace(asset.browser_download_url);
